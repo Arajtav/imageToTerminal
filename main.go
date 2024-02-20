@@ -59,6 +59,7 @@ func getRgb(img *image.Image, x float64, y float64, pxsizex float64, pxsizey flo
 
 func main() {
     sampling := flag.String("sampling", "default", "Sampling mode");
+    sqpx := flag.Bool("sqpx", false, "square pixels");
     flag.Parse();
 
     if !(*sampling == "default" || *sampling == "average" || *sampling == "fast") {
@@ -93,6 +94,7 @@ func main() {
 
     ws, err := unix.IoctlGetWinsize(1, unix.TIOCGWINSZ);
     ws.Row -= 1;
+    if *sqpx { ws.Col /= 2; }
     if err != nil {
         fmt.Fprintln(os.Stderr, "Error getting terminal size");
         os.Exit(1);
@@ -104,6 +106,7 @@ func main() {
         for j := uint16(0); j<c; j++ {
             r, g, b := getRgb(&img, (1.0/float64(c))*float64(j), (1.0/float64(r))*float64(i), 1.0/float64(c), 1.0/float64(r), sampling);
             fmt.Printf("\033[48;2;%d;%d;%dm ", r, g, b);
+            if *sqpx { fmt.Print(" "); }
         }
         fmt.Println("\033[0m");
     }
