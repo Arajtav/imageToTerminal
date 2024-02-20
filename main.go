@@ -8,6 +8,7 @@ import (
     _ "image/jpeg"
     _ "image/png"
     "math"
+    "flag"
 )
 
 // TODO, return number of rows and cols that printed image will have, so it will keep aspect ratio
@@ -47,24 +48,37 @@ func getUv(img* image.Image, x float64, y float64) (uint16, uint16, uint16) {
     return uint16(x*255.0), uint16(y*255.0), 0;
 }
 
-func getRgb(img *image.Image, x float64, y float64, pxsizex float64, pxsizey float64) (uint16, uint16, uint16) {
-   // return getRgbFast(img, x, y);
-    return getRgbAvg(img, x, y, pxsizex, pxsizey);
-//    return getUv(img, x, y);
+func getRgb(img *image.Image, x float64, y float64, pxsizex float64, pxsizey float64, mode *string) (uint16, uint16, uint16) {
+    if *mode == "fast" {
+        return getRgbFast(img, x, y);
+    } else if *mode == "average" {
+        return getRgbAvg(img, x, y, pxsizex, pxsizey);
+    }
+   return getUv(img, x, y); // this shouldn't happen because there is check for what sampling can be earlier
 }
 
 func main() {
-    if len(os.Args) < 2 {
+    sampling := flag.String("sampling", "default", "Sampling mode");
+    flag.Parse();
+
+    if !(*sampling == "default" || *sampling == "average" || *sampling == "fast") {
+        fmt.Fprintln(os.Stderr, "Invalid mode specified for sampling");
+        os.Exit(22);
+    }
+
+    if *sampling == "default" { *sampling = "fast"; }
+
+    if flag.NArg() < 1 {
         fmt.Fprintln(os.Stderr, "You need to specify file");
         os.Exit(22);
     }
 
-    if len(os.Args) > 2 {
-        fmt.Fprintln(os.Stderr, "Too many args");
+    if flag.NArg() > 1 {
+        fmt.Fprintln(os.Stderr, "Too many arguments");
         os.Exit(22);
     }
 
-    file, err := os.Open(os.Args[1]);
+    file, err := os.Open(flag.Args()[0]);
     if err != nil {
         fmt.Fprintf(os.Stderr, "Could not open file %s\n", os.Args[1]);
         os.Exit(1);
@@ -88,7 +102,7 @@ func main() {
     fmt.Print("\033[0m");
     for i := uint16(0); i<r; i++ {
         for j := uint16(0); j<c; j++ {
-            r, g, b := getRgb(&img, (1.0/float64(c))*float64(j), (1.0/float64(r))*float64(i), 1.0/float64(c), 1.0/float64(r));
+            r, g, b := getRgb(&img, (1.0/float64(c))*float64(j), (1.0/float64(r))*float64(i), 1.0/float64(c), 1.0/float64(r), sampling);
             fmt.Printf("\033[48;2;%d;%d;%dm ", r, g, b);
         }
         fmt.Println("\033[0m");
