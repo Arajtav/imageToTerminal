@@ -10,6 +10,49 @@ import (
     "math"
 )
 
+// TODO, return number of rows and cols that printed image will have, so it will keep aspect ratio
+func rescale(imgx uint16, imgy uint16, termx uint16, termy uint16) (uint16, uint16) {
+    return termx, termy;
+}
+
+// simplest sampling, just get pixel with given coordinate
+func getRgbFast(img *image.Image, x float64, y float64) (uint16, uint16, uint16) {
+    rx := int(math.Floor(float64((*img).Bounds().Dx())*x));
+    ry := int(math.Floor(float64((*img).Bounds().Dy())*y));
+    r, g, b, _ := (*img).At((*img).Bounds().Min.X+rx, (*img).Bounds().Min.Y+ry).RGBA();
+    return uint16(r/0xff), uint16(g/0xff), uint16(b/0xff);
+}
+
+// printed pixel will be average value of pixels that original image had in this place
+func getRgbAvg(img* image.Image, x float64, y float64, pxsizex float64, pxsizey float64) (uint16, uint16, uint16) {
+    rx := int(math.Floor(float64((*img).Bounds().Dx())*x));
+    ry := int(math.Floor(float64((*img).Bounds().Dy())*y));
+    rxt := int(math.Floor(float64((*img).Bounds().Dx())*(x+pxsizex)));
+    ryt := int(math.Floor(float64((*img).Bounds().Dy())*(y+pxsizey)));
+    var r, g, b uint64;
+    for i := rx; i<rxt; i++ {
+        for j := ry; j<ryt; j++ {
+            cr, cg, cb, _ := (*img).At((*img).Bounds().Min.X+i, (*img).Bounds().Min.Y+j).RGBA();
+            r += uint64(cr/0xff); g += uint64(cg/0xff); b += uint64(cb/0xff);
+        }
+    }
+    r /= uint64((rxt-rx)*(ryt-ry));
+    g /= uint64((rxt-rx)*(ryt-ry));
+    b /= uint64((rxt-rx)*(ryt-ry));
+    return uint16(r), uint16(g), uint16(b);
+}
+
+// for debugging stuff
+func getUv(img* image.Image, x float64, y float64) (uint16, uint16, uint16) {
+    return uint16(x*255.0), uint16(y*255.0), 0;
+}
+
+func getRgb(img *image.Image, x float64, y float64, pxsizex float64, pxsizey float64) (uint16, uint16, uint16) {
+   // return getRgbFast(img, x, y);
+    return getRgbAvg(img, x, y, pxsizex, pxsizey);
+//    return getUv(img, x, y);
+}
+
 func main() {
     if len(os.Args) < 2 {
         fmt.Fprintln(os.Stderr, "You need to specify file");
@@ -41,13 +84,12 @@ func main() {
         os.Exit(1);
     }
 
+    c, r := rescale(uint16(img.Bounds().Dx()), uint16(img.Bounds().Dy()), ws.Col, ws.Row);
     fmt.Print("\033[0m");
-    for i := uint16(0); i<ws.Row; i++ {
-        for j := uint16(0); j<ws.Col; j++ {
-            var x int = img.Bounds().Min.X + int(math.Floor(float64(j)*(float64(img.Bounds().Dx())/float64(ws.Col))));
-            var y int = img.Bounds().Min.Y + int(math.Floor(float64(i)*(float64(img.Bounds().Dy())/float64(ws.Row))));
-            r, g, b, _ := img.At(x, y).RGBA();
-            fmt.Printf("\033[48;2;%d;%d;%dm ", r/0xff, g/0xff, b/0xff);
+    for i := uint16(0); i<r; i++ {
+        for j := uint16(0); j<c; j++ {
+            r, g, b := getRgb(&img, (1.0/float64(c))*float64(j), (1.0/float64(r))*float64(i), 1.0/float64(c), 1.0/float64(r));
+            fmt.Printf("\033[48;2;%d;%d;%dm ", r, g, b);
         }
         fmt.Println("\033[0m");
     }
