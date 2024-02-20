@@ -1,14 +1,15 @@
 package main
 
 import (
-    "golang.org/x/sys/unix"
+    "golang.org/x/sys/unix" // terminal size
     "fmt"
+    "flag"
+    "math"
     "os"
+
     "image"
     _ "image/jpeg"
     _ "image/png"
-    "math"
-    "flag"
 )
 
 // TODO, return number of rows and cols that printed image will have, so it will keep aspect ratio
@@ -58,16 +59,14 @@ func getRgb(img *image.Image, x float64, y float64, pxsizex float64, pxsizey flo
 }
 
 func main() {
-    sampling := flag.String("sampling", "default", "Sampling mode");
-    sqpx := flag.Bool("sqpx", false, "square pixels");
+    sampling := flag.String("sampling", "fast", "Sampling mode");
+    sqpx := flag.Bool("sqpx", false, "Square pixels");
     flag.Parse();
 
-    if !(*sampling == "default" || *sampling == "average" || *sampling == "fast") {
+    if !(*sampling == "average" || *sampling == "fast") {
         fmt.Fprintln(os.Stderr, "Invalid mode specified for sampling");
         os.Exit(22);
     }
-
-    if *sampling == "default" { *sampling = "fast"; }
 
     if flag.NArg() < 1 {
         fmt.Fprintln(os.Stderr, "You need to specify file");
@@ -81,14 +80,14 @@ func main() {
 
     file, err := os.Open(flag.Args()[0]);
     if err != nil {
-        fmt.Fprintf(os.Stderr, "Could not open file %s\n", os.Args[1]);
+        fmt.Fprintf(os.Stderr, "Could not open file %s\n", flag.Args()[0]);
         os.Exit(1);
     }
     defer file.Close()
 
     img, _, err := image.Decode(file);
     if err != nil {
-        fmt.Fprintf(os.Stderr, "Could not decode image %s\n", os.Args[1]);
+        fmt.Fprintf(os.Stderr, "Could not decode image %s\n", flag.Args()[0]);
         os.Exit(1);
     }
 
