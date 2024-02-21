@@ -55,18 +55,18 @@ func getRgb(img *image.Image, x float64, y float64, pxsizex float64, pxsizey flo
     } else if *mode == "average" {
         return getRgbAvg(img, x, y, pxsizex, pxsizey);
     }
-   return getUv(img, x, y); // this shouldn't happen because there is check for what sampling can be earlier
+    return getUv(img, x, y); // this shouldn't happen because there is check for what sampling can be earlier
 }
 
 func main() {
-    sampling := flag.String("sampling", "fast", "Sampling mode");
+    sampling := flag.String("sampling", "fast", "Sampling mode (fast/average)");
     sqpx := flag.Bool("sqpx", false, "Square pixels");
     ftermx := flag.Uint64("width", 0, "Width");
     ftermy := flag.Uint64("height", 0, "Height");
     flag.Parse();
 
-    if !(*sampling == "average" || *sampling == "fast") {
-        fmt.Fprintln(os.Stderr, "Invalid mode specified for sampling");
+    if !(*sampling == "average" || *sampling == "fast" || *sampling == "uv") {
+        fmt.Fprintln(os.Stderr, "Invalid value specified for sampling");
         os.Exit(22);
     }
 
