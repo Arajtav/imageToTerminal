@@ -60,7 +60,7 @@ func getRgb(img *image.Image, x float64, y float64, pxsizex float64, pxsizey flo
 
 func main() {
     sampling := flag.String("sampling", "fast", "Sampling mode (fast/average)");
-    sqpx := flag.Bool("sqpx", false, "Square pixels");
+    dql := flag.Bool("dql", false, "Double quality");
     ftermx := flag.Uint64("width", 0, "Width");
     ftermy := flag.Uint64("height", 0, "Height");
     flag.Parse();
@@ -97,7 +97,6 @@ func main() {
     ws.Row -= 1;
     if *ftermx != 0 { ws.Col = uint16(*ftermx); }
     if *ftermy != 0 { ws.Row = uint16(*ftermy); }
-    if *sqpx { ws.Col /= 2; }
     if err != nil {
         fmt.Fprintln(os.Stderr, "Error getting terminal size");
         os.Exit(1);
@@ -107,9 +106,14 @@ func main() {
     fmt.Print("\033[0m");
     for i := uint16(0); i<r; i++ {
         for j := uint16(0); j<c; j++ {
-            r, g, b := getRgb(&img, (1.0/float64(c))*float64(j), (1.0/float64(r))*float64(i), 1.0/float64(c), 1.0/float64(r), sampling);
-            fmt.Printf("\033[48;2;%d;%d;%dm ", r, g, b);
-            if *sqpx { fmt.Print(" "); }
+            if *dql {
+                bgr, bgg, bgb := getRgb(&img, (1.0/float64(c))*float64(j), (1.0/float64(r))*float64(i), 1.0/float64(c), 0.5/float64(r), sampling);
+                fgr, fgg, fgb := getRgb(&img, (1.0/float64(c))*float64(j), (1.0/float64(r))*(float64(i)+0.5), 1.0/float64(c), 0.5/float64(r), sampling);
+                fmt.Printf("\033[48;2;%d;%d;%dm\033[38;2;%d;%d;%dm▄", bgr, bgg, bgb, fgr, fgg, fgb);
+            } else {
+                bgr, bgg, bgb := getRgb(&img, (1.0/float64(c))*float64(j), (1.0/float64(r))*float64(i), 1.0/float64(c), 1.0/float64(r), sampling);
+                fmt.Printf("\033[48;2;%d;%d;%dm ", bgr, bgg, bgb);
+            }
         }
         fmt.Println("\033[0m");
     }
