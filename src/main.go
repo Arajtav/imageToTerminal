@@ -9,6 +9,8 @@ import (
     "image"
     _ "image/jpeg"
     _ "image/png"
+
+    "net/http"
 )
 
 // WONT WORK FOR NEGATIVE VALUES, IF VALUE IS NEGATIVE SUBTRACT 1 BEFORE CONVERSION (OR AFTER I DON'T THINK THERE WILL BE DIFFERENCE)
@@ -65,6 +67,7 @@ func getRgb(img *image.Image, x float64, y float64, pxsizex float64, pxsizey flo
 func main() {
     sampling := flag.String("sampling", "fast", "Sampling mode (fast/average)");
     dql := flag.Bool("dql", false, "Double quality");
+    net := flag.Bool("net", false, "Loading images from network");
     ftermx := flag.Uint64("width", 0, "Width");
     ftermy := flag.Uint64("height", 0, "Height");
     flag.Parse();
@@ -93,18 +96,41 @@ func main() {
         os.Exit(1);
     }
 
-    file, err := os.Open(flag.Args()[0]);
-    if err != nil {
-        fmt.Fprintf(os.Stderr, "Could not open file %s\n", flag.Args()[0]);
-        os.Exit(1);
-    }
-    defer file.Close()
+    var img image.Image;
 
-    img, _, err := image.Decode(file);
-    if err != nil {
-        fmt.Fprintf(os.Stderr, "Could not decode image %s\n", flag.Args()[0]);
-        os.Exit(1);
+    if !(*net) {
+        file, err := os.Open(flag.Args()[0]);
+        if err != nil {
+            fmt.Fprintf(os.Stderr, "Could not open file %s\n", flag.Args()[0]);
+            os.Exit(1);
+        }
+        defer file.Close();
+
+        img, _, err = image.Decode(file);
+        if err != nil {
+            fmt.Fprintf(os.Stderr, "Could not decode image %s\n", flag.Args()[0]);
+            os.Exit(1);
+        }
+    } else {
+        response, err := http.Get(flag.Args()[0]);
+        if err != nil {
+            fmt.Fprintf(os.Stderr, "Failed to fetch image %s\n", flag.Args()[0]);
+            os.Exit(1);
+        }
+        defer response.Body.Close()
+
+        if response.StatusCode != 200 {
+            fmt.Fprintf(os.Stderr, "Server responded with code %d\n", response.StatusCode);
+            os.Exit(1);
+        }
+
+        img, _, err = image.Decode(response.Body);
+        if err != nil {
+            fmt.Fprintf(os.Stderr, "Could not decode image %s\n", flag.Args()[0]);
+            os.Exit(1);
+        }
     }
+
 
     c, r := rescale(uint16(img.Bounds().Dx()), uint16(img.Bounds().Dy()), ws.Col, ws.Row);
     fmt.Print("\033[0m");
