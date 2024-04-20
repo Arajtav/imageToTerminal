@@ -91,7 +91,7 @@ func main() {
     ws.Row -= 1;    // there will be always new line on end for shell command prompt
     if *ftermx != 0 { ws.Col = uint16(*ftermx); }
     if *ftermy != 0 { ws.Row = uint16(*ftermy); }
-    if err != nil {
+    if err != nil && (ws.Col == 0 || ws.Row+1 == 0) {
         fmt.Fprintln(os.Stderr, "Error getting terminal size");
         os.Exit(1);
     }
