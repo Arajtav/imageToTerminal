@@ -19,9 +19,9 @@ func floor(val float64) int {
 	return int(val)
 }
 
-// TODO, return number of rows and cols that printed image will have, so it will keep aspect ratio
 func rescale(imgx uint16, imgy uint16, termx uint16, termy uint16) (float64, float64) {
-	return float64(termx), float64(termy)
+	scale := min(float64(termx)/float64(imgx), float64(termy)/float64(imgy))
+	return float64(imgx) * scale * 2, float64(imgy) * scale
 }
 
 // simplest sampling, just get pixel with given coordinate
@@ -69,6 +69,7 @@ func getRgb(img *image.Image, x float64, y float64, pxsizex float64, pxsizey flo
 
 func main() {
 	sampling := flag.String("sampling", "fast", "Sampling mode (fast/average)")
+	imgsize := flag.String("size", "scale", "Image size (scale/stretch)")
 	dql := flag.Bool("dql", false, "Double quality")
 	net := flag.Bool("net", false, "Loading images from network")
 	ftermx := flag.Int("width", 0, "Width")
@@ -77,6 +78,11 @@ func main() {
 
 	if !(*sampling == "average" || *sampling == "fast" || *sampling == "uv") {
 		fmt.Fprintln(os.Stderr, "Invalid value specified for sampling")
+		os.Exit(22)
+	}
+
+	if !(*imgsize == "scale" || *imgsize == "stretch") {
+		fmt.Fprintln(os.Stderr, "Invalid value specified for size")
 		os.Exit(22)
 	}
 
@@ -137,10 +143,17 @@ func main() {
 			os.Exit(1)
 		}
 	}
+
 	if col < 1 || row < 1 {
 		fmt.Fprintf(os.Stderr, "Invalid print size (%d, %d)\n", col, row)
 	}
-	c, r := rescale(uint16(img.Bounds().Dx()), uint16(img.Bounds().Dy()), uint16(col), uint16(row))
+	var c, r float64
+	if *imgsize == "scale" {
+		c, r = rescale(uint16(img.Bounds().Dx()), uint16(img.Bounds().Dy()), uint16(col), uint16(row))
+	} else {
+		c = float64(col)
+		r = float64(row)
+	}
 	fmt.Print("\033[0m")
 	for i := 0.0; i < r; i++ {
 		for j := 0.0; j < c; j++ {
